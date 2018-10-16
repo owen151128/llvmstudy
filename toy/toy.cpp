@@ -57,7 +57,7 @@ public:
 class VariableAST:public BaseAST    //  변수 표현식을 위한 AST
 {
     string var_name;
-    
+
 public:
     VariableAST(string &name):var_name(name) {}
     virtual llvm::Value* codeGen();
@@ -66,7 +66,7 @@ public:
 class NumericAST:public BaseAST //  숫자 표현식을 위한 AST
 {
     int numeric_val;
-    
+
 public:
     NumericAST(int val):numeric_val(val) {}
     virtual llvm::Value* codeGen();
@@ -76,7 +76,7 @@ class BinaryAST:public BaseAST  //  이항 연산자를 포함하는 표현식�
 {
     string bin_operator;
     BaseAST *LHS, *RHS;
-    
+
 public:
     BinaryAST(string op, BaseAST *lhs, BaseAST *rhs):bin_operator(op), LHS(lhs), RHS(rhs) {}
     virtual llvm::Value* codeGen();
@@ -86,7 +86,7 @@ class FunctionDeclAST   //  함수 선언을 위한 AST
 {
     string func_name;
     vector<string> arguments;
-    
+
 public:
     FunctionDeclAST(const string &name, const std::vector<string> &args):func_name(name), arguments(args) {}
     virtual llvm::Function* codeGen();
@@ -96,7 +96,7 @@ class FunctionDefnAST   //  함수 정의를 위한 AST
 {
     FunctionDeclAST *func_decl;
     BaseAST* body;
-    
+
 public:
     FunctionDefnAST(FunctionDeclAST *prototype, BaseAST *funcBody):func_decl(prototype), body(funcBody) {}
     virtual llvm::Function* codeGen();
@@ -105,7 +105,7 @@ public:
 class FunctionCallAST:public BaseAST {  //  함수 호출을 위한 AST
     string function_callee;
     vector<BaseAST*> function_arguments;
-    
+
 public:
     FunctionCallAST(const string &callee, vector<BaseAST*> &args):function_callee(callee), function_arguments(args) {}
     virtual llvm::Value* codeGen();
@@ -118,42 +118,42 @@ public:
 static int get_token()
 {
     static int lastChar=' ';
-    
+
     while(isspace(lastChar))    //  공백이 아닐때 까지 가져온다.(코드가 나타날때 까지 반복한다.)
     {
         lastChar=fgetc(source);
     }
-    
+
     if(isalpha(lastChar))
     {
         identifier_string=lastChar;
-        
+
         while(isalnum((lastChar=fgetc(source))))  // 문자나 숫자가 끝날때 까지 반복한다.(코드가 끝날때 까지 반복한다.)   코드 한줄을 identifier_string에 저장
         {
             identifier_string+=lastChar;
         }
-        
-        if(identifier_string=="def")    // 코드 한줄에 def 가 들어가면 (코드가 함수면)  함수 토큰 return 아닐 경우 식별자 토큰 return
+
+        if(identifier_string=="def")    // def 가 나타나면 함수 토큰 return
         {
             return DEF_TOKEN;
         }
-        
+
         return  IDENTIFIER_TOKEN;
     }
-    
+
     if(isdigit(lastChar))   //  코드가 숫자일경우에 대한 처리
     {
         std::string numStr;
-        
+
         do{
             numStr+=lastChar;
             lastChar=fgetc(source);
         }while (isdigit(lastChar));
-        
+
         numeric_val=strtod(numStr.c_str(), 0);
         return NUMERIC_TOKEN;
     }
-    
+
     if(lastChar=='#')   //  ??
     {
         do
@@ -161,21 +161,21 @@ static int get_token()
             lastChar=fgetc(source);
         }
         while(lastChar!=EOF && lastChar!='\n' && lastChar!='\r');
-        
+
         if(lastChar!=EOF)
         {
             return get_token();
         }
     }
-    
+
     if(lastChar==EOF)   // 파일의 끝일 경우 파일의 끝 토큰 return
     {
         return EOF_TOKEN;
     }
-    
+
     int thisChar=lastChar;
     lastChar=fgetc(source);
-    
+
     return thisChar;    //  문자 반환
 }
 
@@ -185,7 +185,7 @@ static int get_token()
 static int next_token()
 {
     current_token=get_token();
-    
+
     return current_token;
 }
 
@@ -213,7 +213,7 @@ static BaseAST* numeric_parser()
 {
     BaseAST *result=new NumericAST(numeric_val);
     next_token();
-    
+
     return result;
 }
 
@@ -224,45 +224,45 @@ static BaseAST* identifier_parser()
 {
     string idName=identifier_string;
     next_token();
-    
+
     if(current_token!='(')
     {
         return new VariableAST(idName);
     }
-    
+
     next_token();
-    
+
     vector<BaseAST*> args;
-    
+
     if(current_token!=')')
     {
         while(1)
         {
             BaseAST* arg=expression_parser();
-            
+
             if(!arg)
             {
                 return 0;
             }
-            
+
             args.push_back(arg);
-            
+
             if(current_token==')')
             {
                 break;
             }
-            
+
             if(current_token!=',')
             {
                 return 0;
             }
-            
+
             next_token();
         }
     }
-    
+
     next_token();
-    
+
     return new FunctionCallAST(idName, args);
 }
 
@@ -275,29 +275,29 @@ static FunctionDeclAST* func_decl_parser()
     {
         return 0;
     }
-    
+
     string fnName=identifier_string;
     next_token();
-    
+
     if(current_token!='(')
     {
         return 0;
     }
-    
+
     vector<string> function_argument_names;
-    
+
     while(next_token()==IDENTIFIER_TOKEN)
     {
         function_argument_names.push_back(identifier_string);
     }
-    
+
     if(current_token!=')')
     {
         return 0;
     }
-    
+
     next_token();
-    
+
     return new FunctionDeclAST(fnName, function_argument_names);
 }
 
@@ -308,29 +308,29 @@ static FunctionDefnAST* func_defn_parser()
 {
     next_token();
     FunctionDeclAST *decl=func_decl_parser();
-    
+
     if(decl==0)
     {
         return 0;
     }
-    
+
     if(BaseAST *body=expression_parser())
     {
         return new FunctionDefnAST(decl, body);
     }
-    
+
     return 0;
 }
 
 static BaseAST* expression_parser()
 {
     BaseAST *LHS=base_parser();
-    
+
     if(!LHS)
     {
         return 0;
     }
-    
+
     return binary_op_parser(0, LHS);
 }
 
@@ -354,14 +354,14 @@ static int getBinOpPrecedence()
     {
         return -1;
     }
-    
+
     int tokPrec=operator_precedence[current_token];
-    
+
     if(tokPrec<=0)
     {
         return -1;
     }
-    
+
     return tokPrec;
 }
 
@@ -373,33 +373,33 @@ static BaseAST* binary_op_parser(int old_prec, BaseAST *LHS)
     while(1)
     {
         int operator_prec=getBinOpPrecedence();
-        
+
         if(operator_prec<old_prec)
         {
             return LHS;
         }
-        
+
         int binOp=current_token;
         next_token();
         BaseAST* rhs=base_parser();
-        
+
         if(!rhs)
         {
             return 0;
         }
-        
+
         int next_prec=getBinOpPrecedence();
-        
+
         if(operator_prec<next_prec)
         {
             rhs=binary_op_parser(operator_prec+1, rhs);
-            
+
             if(rhs==0)
             {
                 return 0;
             }
         }
-        
+
         LHS=new BinaryAST(to_string(binOp), LHS, rhs);
     }
 }
@@ -411,17 +411,17 @@ static BaseAST* paran_parser()
 {
     next_token();
     BaseAST* v=expression_parser();
-    
+
     if(!v)
     {
         return 0;
     }
-    
+
     if(current_token!=')')
     {
         return 0;
     }
-    
+
     return v;
 }
 
@@ -454,7 +454,7 @@ static FunctionDefnAST *top_level_parser() {
  */
 static void handleTopExpression()
 {
-    
+
     if(FunctionDefnAST *f=top_level_parser())
     {
         f->codeGen();
@@ -501,7 +501,7 @@ llvm::Value* NumericAST::codeGen()
 llvm::Value* VariableAST::codeGen()
 {
     llvm::Value *v=named_Values[var_name];
-    
+
     return v? v : 0;
 }
 
@@ -512,12 +512,12 @@ llvm::Value* BinaryAST::codeGen()
 {
     llvm::Value *left= LHS->codeGen();
     llvm::Value *right=RHS->codeGen();
-    
+
     if(left==0||right==0)
     {
         return 0;
     }
-    
+
     switch(atoi(bin_operator.c_str()))
     {
         case '+':
@@ -540,17 +540,17 @@ llvm::Value* FunctionCallAST::codeGen()
 {
     llvm::Function *calleeF=module_Ob->getFunction(function_callee);
     vector<llvm::Value*> argsV;
-    
+
     for(unsigned int i=0;i<function_arguments.size();i++)
     {
         argsV.push_back(function_arguments[i]->codeGen());
-        
+
         if(argsV.back()==0)
         {
             return 0;
         }
     }
-    
+
     return builder.CreateCall(calleeF, argsV, "calltmp");
 }
 
@@ -562,30 +562,30 @@ llvm::Function* FunctionDeclAST::codeGen()
     vector<llvm::Type*> integers(arguments.size(), llvm::Type::getInt32Ty(context));
     llvm::FunctionType *ft=llvm::FunctionType::get(llvm::Type::getInt32Ty(context), integers, false);
     llvm::Function *f=llvm::Function::Create(ft, llvm::Function::ExternalLinkage, func_name, module_Ob);
-    
+
     if(f->getName()!=func_name)
     {
         f->eraseFromParent();
         f=module_Ob->getFunction(func_name);
-        
+
         if(!f->empty())
         {
             return 0;
         }
-        
+
         if(f->arg_size()!=arguments.size())
         {
             return 0;
         }
     }
-    
+
     llvm::Function::arg_iterator arg_it=f->arg_begin();
     for(unsigned int idx=0;idx<arguments.size(); arg_it++, idx++)
     {
         arg_it->setName(arguments[idx]);
         named_Values[arguments[idx]]=arg_it;
     }
-    
+
     return f;
 }
 
@@ -595,27 +595,27 @@ llvm::Function* FunctionDeclAST::codeGen()
 llvm::Function* FunctionDefnAST::codeGen()
 {
     named_Values.clear();
-    
+
     llvm::Function *theFunction=func_decl->codeGen();
-    
+
     if(theFunction==0)
     {
         return 0;
     }
-    
+
     llvm::BasicBlock *basicBlock=llvm::BasicBlock::Create(context, "enrty", theFunction);
     builder.SetInsertPoint(basicBlock);
-    
+
     if(llvm::Value *retVal=body->codeGen())
     {
         builder.CreateRet(retVal);
         llvm::verifyFunction(*theFunction);
-        
+
         return theFunction;
     }
-    
+
     theFunction->eraseFromParent();
-    
+
     return 0;
 }
 
@@ -623,16 +623,16 @@ int main(int argc, char* argv[])
 {
     init_precedence();  //  연산자 우선순위 초기화
     source=fopen(argv[1], "r"); //  argv[1] 의 path로 파일 포인터 오픈
-    
+
     if(source==0)   // 오픈의 실패 했을경우 예외 처리
     {
         printf("Could not open File!!\n");
     }
-    
+
     next_token();   //  다음 토큰으로 이동
     module_Ob=new llvm::Module("my compiler", context); // LLVM Module Object 변수 초기화
     driver();   //  MainLoop 함수인 driver 호출, 여기서 실질적인 토큰에 따른 handler 동작
     module_Ob->print(llvm::outs(), nullptr);    //  LLVM IR 코드가 출력되는것들을 콘솔로 출력함
-    
+
     return 0;
 }
